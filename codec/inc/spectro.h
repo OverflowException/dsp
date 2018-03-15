@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <array>
 #include <iostream>
+#include <complex>
+#include <cstring>
 
 namespace bfin
 {
@@ -16,16 +18,13 @@ namespace bfin
     {
     public:
       //ctor
-      //sig -- signal start
-      //s_size --- total signal size
-      //f_size --- frame size
-      //o_size --- offset size
-      Spectro(_T* sig, uint32_t s_size)
+      //eff_size --- spectrogram effective size
+      Spectro()
 	{
 	  _half_shift  = _N / 2;
 	  _quart_shift = _half_shift / 2;
 	  _gen_sin_lut();
-	}
+	}      
 
       //dtor
       ~Spectro()
@@ -33,20 +32,29 @@ namespace bfin
 	  delete[] _sin_lut;
 	}
 
-      void fft(double* sig)
+      void gen_spectro(uint16_t eff_size = _half_shift)
       {
-	std::cout << "This is fft!" << std::endl;
+      }
+      
+      //fft
+      //sig --- signal frame, must be _T type in-place calculation.
+      //f_size --- frame size, default equals _N
+      void fft(sig_t* sig, uint32_t f_size = _N)
+      {
+	//Save half of calculations
       }
       
       //Discrete sine
-      inline double dsin(uint16_t n)
+      inline double dsin(short n)
       {
-	n = n >= _N ? (n %_N) : n;  //Elminate multiple periods
+	while(n < 0)   //Map negative to positive
+	  n += _N;
+	n = n >= _N ? (n % _N) : n;  //Elminate multiple periods
 	//Map second half period to first half period
 	return (n >= _half_shift) ? 0.0-_sin_lut[n - _half_shift] : _sin_lut[n];
       }
       //Discrete cos
-      inline double dcos(uint16_t n)
+      inline double dcos(short n)
       {
 	return dsin(n + _quart_shift);
       }
@@ -54,24 +62,63 @@ namespace bfin
       typedef _T sig_t;
       uint16_t _half_shift;  //Half period shift to allocate sine LUT
       uint16_t _quart_shift; //Quarter period shift to calculate cosin values
-      double* _sin_lut; //Sine value LUT
+      double* _sin_lut; //Sine value LUT, half periods
+      
+      complex<double> _o_ele;
+      complex<double> _e_ele;
+      comples<double> _w;
       
       //Will only generate a range of PI/2 sine table
       void _gen_sin_lut()
       {
 	_sin_lut = new double[_half_shift];
-	//_sin_lut = (double*)malloc(_half_shift * sizeof(double));
 	for(uint16_t index = 0; index < _half_shift; ++index)
 	  {
 	    _sin_lut[index] = std::sin((double(index) / _N) * 2 * M_PI);
 	    _sin_lut[index] = std::abs(_sin_lut[index]) < 10E-8 ? 0.0 : _sin_lut[index]; //this 10E-8 threshold should bechecked. Might depend on the precision of the machine.
 	  }
       }
+      
+      inline void _eo_swap(sig_t* sig, int len)
+      {
+	sig_t* swap_buf = new sig_t_[len / 2];
+	
+	for(int index = 0; index < _half_shift; ++index) //Copy out all odd index elements
+	  swap_buf[index] = sig[index * 2 + 1];
+	for(int index = 0; index < _half_shift; ++index) //Copy all even index elements to lower half
+	  sig[index] = sig[index * 2];
+	std::memcpy(sig + _half_shift, swap_buf, _half_shift); //Copy all odd index elements to upper half
+
+	delete[] swap_buf;
+      }
+
+
+      //Recursive FFT 
+      void _rec_fft(complex<double>* X, uint16_t N)
+      {
+	//Termination condition. For a 1 element signal, its FFT is itself.
+	if(N == 1)
+	  return;
+    
+	else
+	  {
+	    separate(X, N);      //all evens to lower half, all odds to upper half
+	    fft2(X, N/2);       //recurse even items
+	    fft2(X + N/2, N/2);     //recurse odd  items
+	    //combine results of two half recursions
+	    for(int k = 0; k < N / 2; k++)
+	      {
+		_e_ele = X[k];
+		_o_ele = X[k + N / 2];
+		_w.real = dcos(k);
+		_w.imag = dsin(k);
+		X[k] = _e_ele + _w * _o_ele;
+		X[k + N / 2] = _e_ele - _w * _o_ele;
+	      }
+	  }
+      }
     };
 }
-
-
-
 
 
 
@@ -95,6 +142,7 @@ namespace bfin
 /* //(upper half of X[] is a reflection with no new information). */
 /* void fft2(complex<double>* X, int N) */
 /* { */
+/*   //Termination condition. For a 1 element signal, its FFT is itself. */
 /*   if(N < 2) */
 /*     return; */
     
@@ -102,7 +150,7 @@ namespace bfin
 /*     { */
 /*       separate(X,N);      //all evens to lower half, all odds to upper half */
 /*       fft2(X, N/2);       //recurse even items */
-/*       fft2(X+N/2, N);     //recurse odd  items */
+/*       fft2(X+N/2, N/2);     //recurse odd  items */
 /*       //combine results of two half recursions */
 /*       for(int k=0; k<N/2; k++) */
 /* 	{ */
