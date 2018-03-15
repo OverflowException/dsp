@@ -3,12 +3,12 @@
 
 TARGET = bin/decoder
 
-CXX = gcc
+CXX = g++
 INC = -I./inc
-LIB = -lavcodec -lavformat -lavutil -lswresample
+LIB = `pkg-config --libs libavcodec libavformat libavutil libswresample`
 DEBUG =
 
-CFLAGS = -Wall -c
+CFLAGS = `pkg-config` -Wall -c --std=c++11
 LFLAGS = -Wall -pthread
 
 COMPILE = $(CXX) $(CFLAGS) $(INC) $(DEBUG) $^ -o $@
@@ -20,9 +20,9 @@ all: $(TARGET) #and other targets
 
 $(TARGET): build/main.o build/audiodec.o
 	$(LINK)
-build/main.o: src/main.c
+build/main.o: src/main.cpp
 	$(COMPILE)
-build/audiodec.o: src/audiodec.c
+build/audiodec.o: src/audiodec.cpp
 	$(COMPILE)
 
 $(shell mkdir -p bin)

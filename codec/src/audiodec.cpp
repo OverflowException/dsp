@@ -1,10 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
- 
+
+extern "C"
+{
 #include <libavutil/opt.h>
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libswresample/swresample.h>
+}
 
 #include "audiodec.h"
  
@@ -72,40 +75,42 @@ int decode_audio_file(const char* path, const int sample_rate, double** data, in
     AVPacket packet;
     av_init_packet(&packet);
     AVFrame* frame = av_frame_alloc();
-	if (!frame) {
-		fprintf(stderr, "Error allocating the frame\n");
-		return -1;
-	}
+    if (!frame)
+      {
+	fprintf(stderr, "Error allocating the frame\n");
+	return -1;
+      }
  
-    // iterate through frames
+    //iterate through frames
     *data = NULL;
     *size = 0;
-    while (av_read_frame(format, &packet) >= 0) {
-        // decode one frame
+    while(av_read_frame(format, &packet) >= 0)
+      {
+        //decode one frame
         int gotFrame;
-        if (avcodec_decode_audio4(codec, frame, &gotFrame, &packet) < 0) {
-            break;
-        }
-        if (!gotFrame) {
-            continue;
-        }
-        // resample frames
+        if(avcodec_decode_audio4(codec, frame, &gotFrame, &packet) < 0)
+	  break;
+	
+        if(!gotFrame)
+	  continue;
+	
+        //resample frames
         double* buffer;
         av_samples_alloc((uint8_t**) &buffer, NULL, 1, frame->nb_samples, AV_SAMPLE_FMT_DBL, 0);
         int frame_count = swr_convert(swr, (uint8_t**) &buffer, frame->nb_samples, (const uint8_t**) frame->data, frame->nb_samples);
-        // append resampled frames to data
+        //append resampled frames to data
         *data = (double*) realloc(*data, (*size + frame->nb_samples) * sizeof(double));
         memcpy(*data + *size, buffer, frame_count * sizeof(double));
         *size += frame_count;
-    }
+      }
  
-    // clean up
+    //clean up
     av_frame_free(&frame);
     swr_free(&swr);
     avcodec_close(codec);
     avformat_free_context(format);
  
-    // success
+    //success
     return 0;
  
 }
