@@ -23,11 +23,10 @@ namespace bfin
 	  _half_shift  = _N / 2;
 	  _quart_shift = _half_shift / 2;
 	  _gen_sin_lut();
-	  _swap_buf = new std::complex<spec_t>[_half_shift];
 	}
       
       //dtor
-      ~SpectroTrans(){ delete[] _sin_lut; delete[] _swap_buf; }
+      ~SpectroTrans(){ delete[] _sin_lut; }
 
       //generate spectrogram. Leftover signal will be discarded.
       //spec --- target spectrogram
@@ -55,16 +54,15 @@ namespace bfin
       //sig --- signal frame, must be _T type in-place calculation.
       //freq --- 
       //f_size --- frame size, default equals _N
-      void fft(sig_t* sig, std::complex<spec_t>* freq, uint32_t f_size = _N)
+      void fft(sig_t* sig, std::complex<spec_t>* freq)
       {
-	for(uint32_t k = 0; k < f_size; ++k)
+	for(uint32_t k = 0; k < _N; ++k)
 	  {
 	    freq[k].real(sig[k]);
 	    freq[k].imag(0);
 	  }
 
-	std::cout << "fft" << std::endl;
-	_rec_fft(freq, f_size);
+	_rec_fft(freq, _N);
       }
       
       //Discrete sine
@@ -88,37 +86,30 @@ namespace bfin
       std::complex<spec_t> _o_ele;
       std::complex<spec_t> _e_ele;
       std::complex<spec_t> _w;
-      std::complex<spec_t>* _swap_buf;
       
-      //Will only generate a range of PI/2 sine table
-      void _gen_sin_lut()
+      template<typename _AT>
+      void _eo_swap(_AT* arr, uint16_t len)
       {
-	_sin_lut = new spec_t[_half_shift];
-	for(uint16_t index = 0; index < _half_shift; ++index)
-	  {
-	    _sin_lut[index] = std::sin((spec_t(index) / _N) * 2 * M_PI);
-	    _sin_lut[index] = std::abs(_sin_lut[index]) < 10E-8 ? 0.0 : _sin_lut[index]; //this 10E-8 threshold should bechecked. Might depend on the precision of the machine.
-	  }
-      }
-      
-      inline void _eo_swap(std::complex<spec_t>* arr, uint16_t len)
-      {
-	//std::complex<spec_t>* swap_buf = new std::complex<spec_t>[len / 2];
+	uint16_t idx = 0;
+	uint16_t half_len = len / 2;
 	
-	for(uint16_t index = 0; index < _half_shift; ++index) //Copy out all odd index elements
-	  _swap_buf[index] = arr[index * 2 + 1];
-	for(uint16_t index = 0; index < _half_shift; ++index) //Copy all even index elements lower half
-	  arr[index] = arr[index * 2];
-	std::memcpy(arr + _half_shift, _swap_buf, _half_shift * sizeof(std::complex<spec_t>)); //Copy all odd index elements to upper half
-
-	//delete[] swap_buf;
+	_AT* swap_buf = new _AT[len / 2];
+	
+	for(idx = 0; idx < half_len; ++idx) //Copy out all odd index elements
+	  swap_buf[idx] = arr[idx * 2 + 1];
+	for(idx = 0; idx < half_len; ++idx) //Copy all even index elements lower half
+	  arr[idx] = arr[idx * 2];
+	/* for(idx = 0; idx < half_len; ++idx) */
+	/*   arr[idx + half_len] = swap_buf[idx]; */
+	std::memcpy(arr + half_len, swap_buf, half_len * sizeof(_AT));
+	
+	delete[] swap_buf;
       }
 
 
       //Recursive FFT
       void _rec_fft(std::complex<spec_t>* X, uint16_t N)
       {
-	std::cout << "in _rec_fft" << N << std::endl;
 	//Termination condition. For a 1 element signal, its FFT is itself.
 	if(N == 1)
 	  return;
@@ -134,17 +125,26 @@ namespace bfin
 	      {
 		_e_ele = X[k];
 		_o_ele = X[k + N / 2];
-		std::cout << "Here1" << std::endl;
-		_w.real(dcos(k));
-		std::cout << "Here2" << std::endl;
-		_w.imag(dsin(k));
-		std::cout << "Here3" << std::endl;
-		X[k] = _e_ele + _w * _o_ele;
+		//_w = exp(std::complex<spec_t>(0,-2.*M_PI*k/N));
+		_w.real(dcos(-k * _N / N));
+		_w.imag(dsin(-k * _N / N));
+		X[k] =         _e_ele + _w * _o_ele;
 		X[k + N / 2] = _e_ele - _w * _o_ele;
 	      }
 	  }
       }
       
+      //Will only generate a range of PI/2 sine table
+      void _gen_sin_lut()
+      {
+	_sin_lut = new spec_t[_half_shift];
+	for(uint16_t idx = 0; idx < _half_shift; ++idx)
+	  {
+	    _sin_lut[idx] = std::sin((spec_t(idx) / _N) * 2 * M_PI);
+	    _sin_lut[idx] = std::abs(_sin_lut[idx]) < 10E-8 ? 0.0 : _sin_lut[idx]; //this 10E-8 threshold should bechecked. Might depend on the precision of the machine.
+	  }
+      }
+            
       uint32_t _calc_spec_h(uint32_t s_len, uint16_t offset)
       {
 	if(s_len < _N || offset == 0) //signal length shorter than frame size

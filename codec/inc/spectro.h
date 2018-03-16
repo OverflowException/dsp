@@ -41,6 +41,9 @@ namespace bfin
 	  }
       }
 
+      inline uint16_t width(){ return _w; }
+      inline uint32_t height(){ return _h; }
+      
       inline value_type*& operator[](uint32_t row){ return _data[row]; }
 	
     private:
