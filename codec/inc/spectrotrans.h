@@ -48,6 +48,8 @@ namespace bfin
 	    for(uint16_t k = 0; k < eff_size; ++k)
 	      spec[f_idx][k] = std::abs(freq[k]);
 	  }
+
+	delete[] freq;
       }
       
       //fft
