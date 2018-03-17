@@ -1,0 +1,4 @@
+0. Find out if it is possible to transplant this this to blackfin
+1. Add a space allocator, which make it more flexible to deploy on an embedded evaluation board
+3. Try use float type spectrogram instead of double to shrink memory.
+4. Try a "stream" approach to generate spectrogram, make it possible to process in real-time. But this raises a question of how to synchronize interrupts.
