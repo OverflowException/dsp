@@ -83,12 +83,13 @@ int main(int argc, char** argv)
   //   }
   // fft2(sig, 1024);
 
-
   
   bfin::Spectro<double> sp;
   bfin::SpectroTrans<double, double, 1024> spt;
-  spt.gen_spectro(sp, data, size, 512, 100);
+  spt.gen_spectro(sp, data, size, 200, 100);
   //spt.fft(data, sig);
+
+  std::cout << sp.height() << "\t" << sp.width() << std::endl;
   for(uint32_t row = 0; row < sp.height(); ++row)
     {
       for(uint16_t col = 0; col < sp.width(); ++col)

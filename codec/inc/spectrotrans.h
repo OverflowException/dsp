@@ -17,7 +17,6 @@ namespace bfin
       typedef _SPEC_T spec_t;
     public:
       //ctor
-      //eff_size --- spectrogram effective size
       SpectroTrans()
 	{
 	  _half_shift  = _N / 2;
@@ -34,37 +33,63 @@ namespace bfin
       //s_len --- signal length
       //offset --- frame offset
       //eff_size --- effective size, width of final spectrogram
-      void gen_spectro(Spectro<spec_t>& spec, sig_t* sig, uint32_t s_len, uint16_t offset, uint16_t eff_size)
+      void gen_spectro(Spectro<spec_t>& spec, const sig_t* sig, uint32_t s_len, uint16_t offset, uint16_t eff_size)
       {
 	uint32_t spec_h = _calc_spec_h(s_len, offset); //calculate how many frames will be applied
 
-	spec.resize(eff_size, spec_h);
+	if(eff_size > _N / 2) //Will not accept spectrogram width > half frame length
+	  return;
 	
-	std::complex<spec_t>* freq = new std::complex<spec_t>[_N];
-
-	for(uint32_t f_idx = 0; f_idx < spec_h; ++f_idx)
+	spec.resize(eff_size, spec_h); //resize spectrogram
+	
+	for(uint32_t f_idx = 0; f_idx < spec_h; ++f_idx, sig += offset) //sliding frames
 	  {
-	    fft(sig + f_idx * offset, freq);
+	    for(uint32_t k = 0; k < _N; ++k) //initialise frequency spectre for recursion
+	      {
+		_freq[k].real(sig[k]);
+		_freq[k].imag(0);
+	      }
+	    
+	    _eo_swap(_freq, _N);
+	    fft2(_freq, _N / 2);
+	    fft2(_freq + _N / 2, _N / 2);
+	    
 	    for(uint16_t k = 0; k < eff_size; ++k)
-	      spec[f_idx][k] = std::abs(freq[k]);
+	      {
+		_e_ele = _freq[k];
+		_o_ele = _freq[k + _N / 2];
+		_w.real(dcos(-k));
+		_w.imag(dsin(-k));
+		spec[f_idx][k] = std::abs(_e_ele + _w * _o_ele);
+	      }
 	  }
-
-	delete[] freq;
       }
-      
-      //fft
-      //sig --- signal frame, must be _T type in-place calculation.
-      //freq --- 
-      //f_size --- frame size, default equals _N
-      void fft(sig_t* sig, std::complex<spec_t>* freq)
-      {
-	for(uint32_t k = 0; k < _N; ++k)
-	  {
-	    freq[k].real(sig[k]);
-	    freq[k].imag(0);
-	  }
 
-	_rec_fft(freq, _N);
+      //Radix-2 FFT
+      void fft2(std::complex<spec_t>* X, uint16_t N = _N)
+      {
+	//Termination condition. For a 1 element signal, its FFT is itself.
+	if(N == 1)
+	  return;
+    
+	else
+	  {
+	    _eo_swap(X, N);      //all evens to lower half, all odds to upper half
+	    fft2(X, N/2);       //recurse even items
+	    fft2(X + N/2, N/2);     //recurse odd  items
+	    //combine results of two half recursions
+
+	    for(uint16_t k = 0; k < N / 2; k++)
+	      {
+		_e_ele = X[k];
+		_o_ele = X[k + N / 2];
+		//_w = exp(std::complex<spec_t>(0,-2.*M_PI*k/N));
+		_w.real(dcos(-k * _N / N));
+		_w.imag(dsin(-k * _N / N));
+		X[k] =         _e_ele + _w * _o_ele;
+		X[k + N / 2] = _e_ele - _w * _o_ele;
+	      }
+	  }
       }
       
       //Discrete sine
@@ -88,6 +113,7 @@ namespace bfin
       std::complex<spec_t> _o_ele;
       std::complex<spec_t> _e_ele;
       std::complex<spec_t> _w;
+      std::complex<spec_t> _freq[_N];
       
       template<typename _AT>
       void _eo_swap(_AT* arr, uint16_t len)
@@ -106,34 +132,6 @@ namespace bfin
 	std::memcpy(arr + half_len, swap_buf, half_len * sizeof(_AT));
 	
 	delete[] swap_buf;
-      }
-
-
-      //Recursive FFT
-      void _rec_fft(std::complex<spec_t>* X, uint16_t N)
-      {
-	//Termination condition. For a 1 element signal, its FFT is itself.
-	if(N == 1)
-	  return;
-    
-	else
-	  {
-	    _eo_swap(X, N);      //all evens to lower half, all odds to upper half
-	    _rec_fft(X, N/2);       //recurse even items
-	    _rec_fft(X + N/2, N/2);     //recurse odd  items
-	    //combine results of two half recursions
-
-	    for(uint16_t k = 0; k < N / 2; k++)
-	      {
-		_e_ele = X[k];
-		_o_ele = X[k + N / 2];
-		//_w = exp(std::complex<spec_t>(0,-2.*M_PI*k/N));
-		_w.real(dcos(-k * _N / N));
-		_w.imag(dsin(-k * _N / N));
-		X[k] =         _e_ele + _w * _o_ele;
-		X[k + N / 2] = _e_ele - _w * _o_ele;
-	      }
-	  }
       }
       
       //Will only generate a range of PI/2 sine table

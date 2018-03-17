@@ -34,4 +34,5 @@
 *~
 */bin/*
 */build/*
-*/spectrogram
+*spect_*
+*.png
