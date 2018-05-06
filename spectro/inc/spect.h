@@ -1,5 +1,5 @@
-#ifndef _SPECTRO_H
-#define _SPECTRO_H
+#ifndef _SPECT_H
+#define _SPECT_H
 
 #include <cstdint>
 #include <array>
@@ -8,17 +8,17 @@
 #include <vector>
 
 
-namespace bfin
+namespace dsp
 {
   template<typename _T>
-    class Spectro
+    class Spect
     {
     public:
       typedef _T value_type;
       //ctor
       //h --- height, number of spectras
       //w --- width, sample points per spectra
-      Spectro(uint16_t w = 0, uint32_t h = 0) : _w(w), _h(h)
+      Spect(uint16_t w = 0, uint32_t h = 0) : _w(w), _h(h)
 	{
 	  _data = NULL;
 	  if(w != 0 && h != 0)
@@ -26,7 +26,7 @@ namespace bfin
 	}
 
       //dtor
-      ~Spectro(){ _dealloc_data(); }
+      ~Spect(){ _dealloc_data(); }
       
       void resize(uint16_t w, uint32_t h)
       {

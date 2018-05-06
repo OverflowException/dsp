@@ -1,11 +1,13 @@
 #ifndef _spectrotrans
 #define _spectrotrans
 
-#include "spectro.h"
+#include "spect.h"
 #include <complex>
 #include <cmath>
+#include <typeinfo>
+#include "trigolut.h"
 
-namespace bfin
+namespace dsp
 {
   //_SIG_T --- signal element type
   //_SPEC_T --- spectrogram element type
@@ -17,15 +19,10 @@ namespace bfin
       typedef _SPEC_T spec_t;
     public:
       //ctor
-      SpectroTrans()
-	{
-	  _half_shift  = _N / 2;
-	  _quart_shift = _half_shift / 2;
-	  _gen_sin_lut();
-	}
+      SpectroTrans(){}
       
       //dtor
-      ~SpectroTrans(){ delete[] _sin_lut; }
+      ~SpectroTrans(){}
 
       //generate spectrogram. Leftover signal will be discarded.
       //spec --- target spectrogram
@@ -33,7 +30,7 @@ namespace bfin
       //s_len --- signal length
       //offset --- frame offset
       //eff_size --- effective size, width of final spectrogram
-      void gen_spectro(Spectro<spec_t>& spec, const sig_t* sig, uint32_t s_len, uint16_t offset, uint16_t eff_size)
+      void gen_spectro(Spect<spec_t>& spec, const sig_t* sig, uint32_t s_len, uint16_t offset, uint16_t eff_size)
       {
 	uint32_t spec_h = _calc_spec_h(s_len, offset); //calculate how many frames will be applied
 
@@ -58,9 +55,9 @@ namespace bfin
 	      {
 		_e_ele = _freq[k];
 		_o_ele = _freq[k + _N / 2];
-		_w.real(dcos(-k));
-		_w.imag(dsin(-k));
-		spec[f_idx][k] = std::log10(std::abs(_e_ele + _w * _o_ele));
+		_w.real(_trigo_lut.dcos(-k));
+		_w.imag(_trigo_lut.dsin(-k));
+		spec[f_idx][k] = static_cast<spec_t>(std::log10(std::abs(_e_ele + _w * _o_ele)));
 	      }
 	  }
       }
@@ -83,36 +80,23 @@ namespace bfin
 	      {
 		_e_ele = X[k];
 		_o_ele = X[k + N / 2];
-		_w.real(dcos(-k * _N / N));
-		_w.imag(dsin(-k * _N / N));
+		_w.real(_trigo_lut.dcos(-k * _N / N));
+		_w.imag(_trigo_lut.dsin(-k * _N / N));
 		X[k] =         _e_ele + _w * _o_ele;
 		X[k + N / 2] = _e_ele - _w * _o_ele;
 	      }
 	  }
       }
       
-      //Discrete sine
-      inline spec_t dsin(short n)
-      {
-	while(n < 0)   //Map negative to positive
-	  n += _N;
-	n = n >= _N ? (n % _N) : n;  //Elminate multiple periods
-	//Map second half period to first half period
-	return (n >= _half_shift) ? 0.0-_sin_lut[n - _half_shift] : _sin_lut[n];
-      }
-      //Discrete cos
-      inline spec_t dcos(short n){ return dsin(n + _quart_shift); }
-
     private:
-      uint16_t _half_shift;  //Half period shift to allocate sine LUT
-      uint16_t _quart_shift; //Quarter period shift to calculate cosin values
-      spec_t* _sin_lut; //Sine value LUT, half periods
+      TrigoLut<spec_t, _N> _trigo_lut;
 
       //private variables to perform FFT
       std::complex<spec_t> _o_ele;
       std::complex<spec_t> _e_ele;
       std::complex<spec_t> _w;
       std::complex<spec_t> _freq[_N];
+      std::complex<spec_t> _swap_buf[_N / 2];
       
       template<typename _AT>
       void _eo_swap(_AT* arr, uint16_t len)
@@ -120,30 +104,14 @@ namespace bfin
 	uint16_t idx = 0;
 	uint16_t half_len = len / 2;
 	
-	_AT* swap_buf = new _AT[len / 2];
-	
 	for(idx = 0; idx < half_len; ++idx) //Copy out all odd index elements
-	  swap_buf[idx] = arr[idx * 2 + 1];
+	  _swap_buf[idx] = arr[idx * 2 + 1];
 	for(idx = 0; idx < half_len; ++idx) //Copy all even index elements lower half
 	  arr[idx] = arr[idx * 2];
-	/* for(idx = 0; idx < half_len; ++idx) */
-	/*   arr[idx + half_len] = swap_buf[idx]; */
-	std::memcpy(arr + half_len, swap_buf, half_len * sizeof(_AT));
-	
-	delete[] swap_buf;
+
+	std::memcpy(arr + half_len, _swap_buf, half_len * sizeof(_AT));
       }
-      
-      //Will only generate a range of PI/2 sine table
-      void _gen_sin_lut()
-      {
-	_sin_lut = new spec_t[_half_shift];
-	for(uint16_t idx = 0; idx < _half_shift; ++idx)
-	  {
-	    _sin_lut[idx] = std::sin((spec_t(idx) / _N) * 2 * M_PI);
-	    _sin_lut[idx] = std::abs(_sin_lut[idx]) < 10E-8 ? 0.0 : _sin_lut[idx]; //this 10E-8 threshold should bechecked. Might depend on the precision of the machine.
-	  }
-      }
-            
+                  
       uint32_t _calc_spec_h(uint32_t s_len, uint16_t offset)
       {
 	if(s_len < _N || offset == 0) //signal length shorter than frame size
