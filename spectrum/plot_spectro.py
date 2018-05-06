@@ -40,7 +40,8 @@ for line_idx in range(0, total_row):
     line = fd.readline()
     spect.append([])
     for num in line.split():
-        spect[line_idx].append(math.log10(float(num)))
+        #spect[line_idx].append(math.log10(float(num)))
+        spect[line_idx].append(float(num))
 
 rot_spect = zip(*spect[::-1])
 spect = zip(*rot_spect[::-1])

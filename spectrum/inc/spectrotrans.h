@@ -60,7 +60,7 @@ namespace bfin
 		_o_ele = _freq[k + _N / 2];
 		_w.real(dcos(-k));
 		_w.imag(dsin(-k));
-		spec[f_idx][k] = std::abs(_e_ele + _w * _o_ele);
+		spec[f_idx][k] = std::log10(std::abs(_e_ele + _w * _o_ele));
 	      }
 	  }
       }
@@ -83,7 +83,6 @@ namespace bfin
 	      {
 		_e_ele = X[k];
 		_o_ele = X[k + N / 2];
-		//_w = exp(std::complex<spec_t>(0,-2.*M_PI*k/N));
 		_w.real(dcos(-k * _N / N));
 		_w.imag(dsin(-k * _N / N));
 		X[k] =         _e_ele + _w * _o_ele;
