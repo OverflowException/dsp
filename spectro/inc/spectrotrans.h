@@ -19,7 +19,7 @@ namespace dsp
       typedef _SPEC_T spec_t;
     public:
       //ctor
-      SpectroTrans(){}
+      SpectroTrans(){ _trigo_lut.resize(_N); }
       
       //dtor
       ~SpectroTrans(){}
@@ -89,7 +89,7 @@ namespace dsp
       }
       
     private:
-      TrigoLut<spec_t, _N> _trigo_lut;
+      TrigoLut<spec_t> _trigo_lut;
 
       //private variables to perform FFT
       std::complex<spec_t> _o_ele;

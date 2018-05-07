@@ -8,34 +8,42 @@ namespace dsp
 {
   //_T --- value type of this trigonometric LUT
   //_N --- number of steps per period
-  template<typename _T, int _N>
+  template<typename _T>
     class TrigoLut
     {
       typedef _T val_t;
       
     public:
       //ctor
-      TrigoLut()
+      TrigoLut(int size = 0)
 	{
-	  if(_N % 4 != 0)
-	    throw std::invalid_argument("Number of steps per period should be a multiple of 4!");
-	    
-	  this->_half_shift = _N / 2;
-	  this->_quart_shift = _half_shift / 2;
-	  
-	  if(_N <= 0)
-	    throw std::invalid_argument("Number of steps per period should not be negative!");
-
-	  _gen_sin_lut();	  
+	  if(size != 0)
+	    resize(size);
 	}
-      ~TrigoLut(){_sin_lut.clear();};
+      ~TrigoLut(){ _sin_lut.clear(); };
 
+      void resize(int size)
+      {
+	if(size % 4 != 0)
+	  throw std::invalid_argument("Number of steps per period should be a multiple of 4!");
+
+	if(size <= 0)
+	  throw std::invalid_argument("Number of steps per period should not be negative!");
+
+	this->_nsteps = size;
+	this->_half_shift = _nsteps / 2;
+	this->_quart_shift = _half_shift / 2;
+
+	_gen_sin_lut();
+      }
+
+      
       inline val_t dsin(int n)
       {
-	n %= _N;
-	n += _N;
+	n %= _nsteps;
+	n += _nsteps;
 	
-	n = n >= _N ? (n % _N) : n;  //Elminate multiple periods
+	n = n >= _nsteps ? (n % _nsteps) : n;  //Elminate multiple periods
 	//Map second half period to first half period
 	return (n >= _half_shift) ? (val_t(0) - _sin_lut[n - _half_shift]) : _sin_lut[n];
       }
@@ -44,6 +52,7 @@ namespace dsp
       
     private:
       std::vector<val_t> _sin_lut;
+      int _nsteps;
       int _half_shift;
       int _quart_shift;
       
@@ -51,7 +60,7 @@ namespace dsp
       {
 	_sin_lut.resize(_half_shift);
 	for(int idx = 0; idx < _half_shift; ++idx)
-	  _sin_lut[idx] = std::sin((val_t(idx) / _N) * 2 * M_PI);
+	  _sin_lut[idx] = std::sin((val_t(idx) / _nsteps) * 2 * M_PI);
       }
     };
 }
