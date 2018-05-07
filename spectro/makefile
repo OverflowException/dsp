@@ -8,7 +8,7 @@ INC = -I./inc
 LIB = `pkg-config --libs libavcodec libavformat libavutil libswresample`
 DEBUG =
 
-CFLAGS = `pkg-config` -Wall -c --std=c++11
+CFLAGS = -Wall -c --std=c++11
 LFLAGS = -Wall -pthread
 
 COMPILE = $(CXX) $(CFLAGS) $(INC) $(DEBUG) $^ -o $@

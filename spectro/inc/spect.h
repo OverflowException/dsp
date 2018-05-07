@@ -6,6 +6,7 @@
 #include <iostream>
 #include <cstring>
 #include <vector>
+#include <iostream>
 
 
 namespace dsp
@@ -41,11 +42,24 @@ namespace dsp
 	  }
       }
 
-      inline uint16_t width(){ return _w; }
-      inline uint32_t height(){ return _h; }
+      inline uint16_t width() const { return _w; }
+      inline uint32_t height() const { return _h; }
       
       inline value_type*& operator[](uint32_t row){ return _data[row]; }
-	
+      inline value_type*& operator[](uint32_t row) const { return _data[row]; }
+
+      friend std::ostream& operator<<(std::ostream& os, const Spect& sp)
+      {
+	for(uint32_t row = 0; row < sp.height(); ++row)
+	{
+	  for(uint16_t col = 0; col < sp.width(); ++col)
+	    os << sp._data[row][col] << " ";
+	  os << "\n";
+	}
+
+	return os;
+      }
+      
     private:
       uint16_t _w;
       uint32_t _h;
