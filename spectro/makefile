@@ -1,7 +1,7 @@
 #To build executable for raspberry pi, run
 #	make RPI=1
 
-TARGET = bin/decoder
+TARGET = bin/spect
 
 CXX = g++
 INC = -I./inc
