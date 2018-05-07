@@ -33,23 +33,27 @@ namespace dsp
 	
 	cepstra.resize(eff_size, _spectro_ptr->height());
 	
-	uint32_t row; //row index
-	uint16_t sp_col, ce_col; //spectrogram col index, cepstral coefficient array (CCA) col index
-	cepstra_t ce_val; //intermediate value
+	uint32_t row; //Row index. Each row of spectrogram is a spectrum. Each row of CCA is a cepstrum.
+	uint16_t sp_idx, ce_idx; //Spectrum element index, cepstrum element index
+	int phase = 0;
+	int delta_phase = 0;
+	cepstra_t ce_val; //Intermediate value
 	
 	//Traverse rows of (CCA)
 	for(row = 0; row < cepstra.height(); ++row)
 	  //Traverse elements of CCA
-	  for(ce_col = 0; ce_col < cepstra.width(); ++ce_col)
+	  for(ce_idx = 0; ce_idx < cepstra.width(); ++ce_idx)
 	    {
 	      ce_val = 0;
+	      phase = ce_idx * 2;
+	      delta_phase = ce_idx * 4;
+
 	      //Traverse elements of spectrogram
-	      for(sp_col = 0; sp_col < _spectro_ptr->width(); ++sp_col)
-		ce_val +=  (*_spectro_ptr)[row][sp_col] *
-		  _trigo_lut.dcos((2 * int(sp_col) + 1) * ce_col * 2);
+	      for(sp_idx = 0; sp_idx < _spectro_ptr->width(); ++sp_idx, phase += delta_phase)
+		ce_val +=  (*_spectro_ptr)[row][sp_idx] * _trigo_lut.dcos(phase);
 
 	      ce_val *= 1 / sqrt(_spectro_ptr->width());
-	      cepstra[row][ce_col] = (ce_col == 0 ? ce_val : ce_val * _cepstrum_const);
+	      cepstra[row][ce_idx] = (ce_idx == 0 ? ce_val : ce_val * _cepstrum_const);
 	    }
       }
       
