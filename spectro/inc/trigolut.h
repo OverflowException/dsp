@@ -40,10 +40,13 @@ namespace dsp
       
       inline val_t dsin(int n)
       {
+	//Eliminate multiple periods
 	n %= _nsteps;
-	n += _nsteps;
+
+	//Map negative phase to positive
+	if(n < 0)
+	  n += _nsteps;
 	
-	n = n >= _nsteps ? (n % _nsteps) : n;  //Elminate multiple periods
 	//Map second half period to first half period
 	return (n >= _half_shift) ? (val_t(0) - _sin_lut[n - _half_shift]) : _sin_lut[n];
       }
