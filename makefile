@@ -1,7 +1,8 @@
 #To build executable for raspberry pi, run
 #	make RPI=1
 
-TARGET = bin/spect
+TARGET1 = bin/genspect
+TARGET2 = bin/dtwmatch
 
 CXX = g++
 INC = -I./inc
@@ -16,13 +17,18 @@ LINK = $(CXX) $(LFLAGS) $(LIB) $^ -o $@
 
 
 .PHONY: all
-all: $(TARGET) #and other targets
+all: $(TARGET1) $(TARGET2)#and other targets
 
-$(TARGET): build/main.o build/audiodec.o
+$(TARGET1): build/genspect.o build/audiodec.o
 	$(LINK)
-build/main.o: src/main.cpp
+$(TARGET2): build/dtwmatch.o build/audiodec.o
+	$(LINK)
+
+build/genspect.o: src/genspect.cpp
 	$(COMPILE)
 build/audiodec.o: src/audiodec.cpp
+	$(COMPILE)
+build/dtwmatch.o: src/dtwmatch.cpp
 	$(COMPILE)
 
 $(shell mkdir -p bin)

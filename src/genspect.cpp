@@ -3,11 +3,12 @@
 #include <iostream>
 #include <sstream>
 #include "audiodec.h"
-#include "spect.h"
+#include "mat.h"
 #include "spectrotrans.h"
 #include "cepstratrans.h"
 
 using namespace std;
+
 int main(int argc, char** argv)
 {
  
@@ -18,8 +19,7 @@ int main(int argc, char** argv)
       return 0;
     }
 
-  std::ofstream fs;
-  
+  std::ofstream fs;  
   //Decode data
   int sample_rate = atoi(argv[2]);
   cout << "Sample rate = " << sample_rate << std::endl;
@@ -32,7 +32,7 @@ int main(int argc, char** argv)
   std::cout << "data size = " << size << std::endl;
   
   //Generate spectrogram
-  dsp::Spect<double> sp;
+  dsp::Mat<double> sp;
   dsp::SpectroTrans<double, double, 1024> spt;
   spt.gen_spectro(sp, data, size, 200, 100);
 
@@ -43,9 +43,9 @@ int main(int argc, char** argv)
   fs.close();
   
   //Generate cepstral coefficient array from spectrogram
-  dsp::Spect<double> ce;
-  dsp::CepstraTrans<double, double> cet(sp);
-  cet.gen_cepstra(ce, 30);
+  dsp::Mat<double> ce;
+  dsp::CepstraTrans<double, double, 100> cet;
+  cet.gen_cepstra(sp, ce, 30);
 
   //Output CCA
   fs.open(argv[4]);

@@ -1,7 +1,7 @@
-#ifndef _spectrotrans
-#define _spectrotrans
+#ifndef _SPECTROTRANS_H
+#define _SPECTROTRANS_H
 
-#include "spect.h"
+#include "mat.h"
 #include <complex>
 #include <cmath>
 #include <typeinfo>
@@ -30,7 +30,7 @@ namespace dsp
       //s_len --- signal length
       //offset --- frame offset
       //eff_size --- effective size, width of final spectrogram
-      void gen_spectro(Spect<spec_t>& spec, const sig_t* sig, uint32_t s_len, uint16_t offset, uint16_t eff_size)
+      void gen_spectro(Mat<spec_t>& spec, const sig_t* sig, uint32_t s_len, uint16_t offset, uint16_t eff_size)
       {
 	uint32_t spec_h = _calc_spec_h(s_len, offset); //calculate how many frames will be applied
 

@@ -1,5 +1,5 @@
-#ifndef _SPECT_H
-#define _SPECT_H
+#ifndef _MAT_H
+#define _MAT_H
 
 #include <cstdint>
 #include <array>
@@ -12,14 +12,14 @@
 namespace dsp
 {
   template<typename _T>
-    class Spect
+    class Mat
     {
     public:
       typedef _T value_type;
       //ctor
       //h --- height, number of spectras
       //w --- width, sample points per spectra
-      Spect(uint16_t w = 0, uint32_t h = 0) : _w(w), _h(h)
+      Mat(uint32_t w = 0, uint32_t h = 0) : _w(w), _h(h)
 	{
 	  _data = NULL;
 	  if(w != 0 && h != 0)
@@ -27,9 +27,9 @@ namespace dsp
 	}
 
       //dtor
-      ~Spect(){ _dealloc_data(); }
+      ~Mat(){ _dealloc_data(); }
       
-      void resize(uint16_t w, uint32_t h)
+      void resize(uint32_t w, uint32_t h)
       {
 	if(w == _w && h == _h)
 	  return;
@@ -42,18 +42,18 @@ namespace dsp
 	  }
       }
 
-      inline uint16_t width() const { return _w; }
+      inline uint32_t width() const { return _w; }
       inline uint32_t height() const { return _h; }
       
       inline value_type*& operator[](uint32_t row){ return _data[row]; }
       inline value_type*& operator[](uint32_t row) const { return _data[row]; }
 
-      friend std::ostream& operator<<(std::ostream& os, const Spect& sp)
+      friend std::ostream& operator<<(std::ostream& os, const Mat& m)
       {
-	for(uint32_t row = 0; row < sp.height(); ++row)
+	for(uint32_t row = 0; row < m.height(); ++row)
 	{
-	  for(uint16_t col = 0; col < sp.width(); ++col)
-	    os << sp._data[row][col] << " ";
+	  for(uint32_t col = 0; col < m.width(); ++col)
+	    os << m._data[row][col] << " ";
 	  os << "\n";
 	}
 
@@ -61,7 +61,7 @@ namespace dsp
       }
       
     private:
-      uint16_t _w;
+      uint32_t _w;
       uint32_t _h;
       value_type** _data;
       
@@ -77,7 +77,7 @@ namespace dsp
 	_data = NULL;
       }
 
-      inline void _alloc_data(uint16_t w, uint32_t h)
+      inline void _alloc_data(uint32_t w, uint32_t h)
       {
 	_data = new value_type*[h];
 	for(uint32_t r_idx = 0; r_idx < h; ++r_idx)
