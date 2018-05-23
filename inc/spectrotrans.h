@@ -32,51 +32,48 @@ namespace dsp
       //eff_size --- effective size, width of final spectrogram
       void gen_spectro(Mat<spec_t>& spec, const sig_t* sig, uint32_t s_len, uint16_t offset, uint16_t eff_size)
       {
-	uint32_t spec_h = _calc_spec_h(s_len, offset); //calculate how many frames will be applied
+	//Calculate how many frames will be applied
+	uint32_t spec_h = _calc_spec_h(s_len, offset);
 
-	if(eff_size > _N / 2) //Will not accept spectrogram width > half frame length
+	//Will not accept spectrogram width > half frame length
+	if(eff_size > _N / 2)
 	  return;
-	
-	spec.resize(eff_size, spec_h); //resize spectrogram
-	
-	for(uint32_t f_idx = 0; f_idx < spec_h; ++f_idx, sig += offset) //sliding frames
+
+	//Resize spectrogram
+	spec.resize(eff_size, spec_h);
+	for(uint32_t f_idx = 0; f_idx < spec_h; ++f_idx, sig += offset)
 	  {
-	    for(uint32_t k = 0; k < _N; ++k) //initialise frequency spectre for recursion
+	    //Initialise frequency spectre for recursion
+	    for(uint32_t k = 0; k < _N; ++k)
 	      {
 		_freq[k].real(sig[k]);
 		_freq[k].imag(0);
 	      }
 	    
-	    _eo_swap(_freq, _N);
-	    fft2(_freq, _N / 2);
-	    fft2(_freq + _N / 2, _N / 2);
-	    
+	    fft2(_freq, _N, eff_size);
+
+	    //Take modulus, and copy into spectrgram
 	    for(uint16_t k = 0; k < eff_size; ++k)
-	      {
-		_e_ele = _freq[k];
-		_o_ele = _freq[k + _N / 2];
-		_w.real(_trigo_lut.dcos(-k));
-		_w.imag(_trigo_lut.dsin(-k));
-		spec[f_idx][k] = static_cast<spec_t>(std::log10(std::abs(_e_ele + _w * _o_ele)));
-	      }
+	      spec[f_idx][k] = static_cast<spec_t>(std::log10(std::abs(_freq[k])));
 	  }
       }
 
       //Radix-2 FFT
-      void fft2(std::complex<spec_t>* X, uint16_t N = _N)
+      void fft2(std::complex<spec_t>* X, uint16_t N = _N, uint16_t esize = _N)
       {
+	esize = esize > N / 2 ? N / 2 : esize;
 	//Termination condition. For a 1 element signal, its FFT is itself.
 	if(N == 1)
 	  return;
-    
+	
 	else
 	  {
 	    _eo_swap(X, N);      //all evens to lower half, all odds to upper half
-	    fft2(X, N/2);       //recurse even items
-	    fft2(X + N/2, N/2);     //recurse odd  items
+	    fft2(X, N / 2);       //recurse even items
+	    fft2(X + N / 2, N / 2);     //recurse odd items
 	    //combine results of two half recursions
 
-	    for(uint16_t k = 0; k < N / 2; k++)
+	    for(uint16_t k = 0; k < esize; k++)
 	      {
 		_e_ele = X[k];
 		_o_ele = X[k + N / 2];

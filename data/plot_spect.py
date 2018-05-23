@@ -55,7 +55,10 @@ rot_spect = zip(*spect[::-1])
 spect = zip(*rot_spect[::-1])
 rot_spect = zip(*spect[::-1])
 
-plt.imshow(rot_spect, cmap='hot', interpolation='nearest')
+plt.title(sys.argv[2]);
+plt.imshow(X=rot_spect, cmap='hot', interpolation='nearest')
+name,suffix = sys.argv[2].split(".")
 plt.show()
+#plt.imsave(fname=name+'.png', arr=rot_spect, cmap='hot', format='png')
 
 fd.close()

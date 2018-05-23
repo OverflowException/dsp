@@ -91,11 +91,6 @@ int main(int argc, char** argv)
   dsp::SpectroTrans<double, double, 1024> spt;
   spt.gen_spectro(sp1, data1, size1, 200, 100);
   spt.gen_spectro(sp2, data2, size2, 200, 100);
-  // std::cout << sp1 << std::endl;
-  // std::cout << std::endl;
-
-  // std::cout << sp2 << std::endl;
-  // std::cout << std::endl;
   
   //Generate cepstral coefficient arrays from spectrograms
   dsp::Mat<double> ce1, ce2;
@@ -106,15 +101,15 @@ int main(int argc, char** argv)
   dsp::Mat<double> spDist, ceDist;
   //Apply dtw to spectrograms
   genDistMat(sp1, sp2, spDist);
-  //std::cout << spDist << std::endl;
   dtw(spDist);
   //Apply dtw to CCAs
   genDistMat(ce1, ce2, ceDist);
   dtw(ceDist);
 
-  
-  std::cout << "Spectrogram dtw = " << spDist[spDist.height() - 1][spDist.width() - 1] <<
-    "\nCCA dtw = " << ceDist[ceDist.height() - 1][ceDist.width() - 1] << std::endl;
+
+  std::cout << argv[1] << "\t---\t" << argv[2] << std::endl;
+  std::cout << "Sp dtw = " << spDist[spDist.height() - 1][spDist.width() - 1] <<
+    "\tCe dtw = " << ceDist[ceDist.height() - 1][ceDist.width() - 1] << std::endl;
   
   return 0;
 }
