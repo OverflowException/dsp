@@ -19,7 +19,7 @@ beg_idx = -1
 if sys.argv[1] == "sp":
     beg_idx = 0
 elif sys.argv[1] == "ce":
-    beg_idx = 1
+    beg_idx = 2
 
 if beg_idx == -1:
     sys.exit();
@@ -59,6 +59,5 @@ plt.title(sys.argv[2]);
 plt.imshow(X=rot_spect, cmap='hot', interpolation='nearest')
 name,suffix = sys.argv[2].split(".")
 plt.show()
-#plt.imsave(fname=name+'.png', arr=rot_spect, cmap='hot', format='png')
 
 fd.close()

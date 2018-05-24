@@ -42,8 +42,8 @@ namespace dsp
 	  for(ce_idx = 0; ce_idx < cepstra.width(); ++ce_idx)
 	    {
 	      ce_val = 0;
-	      phase = ce_idx * 2;
-	      delta_phase = ce_idx * 4;
+	      phase = ce_idx;
+	      delta_phase = ce_idx * 2;
 
 	      //Traverse elements of spectrogram
 	      for(sp_idx = 0; sp_idx < _N; ++sp_idx, phase += delta_phase)
